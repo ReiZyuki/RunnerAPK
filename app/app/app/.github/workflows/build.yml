@@ -1,0 +1,101 @@
+name: Build Runner APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+
+        with:
+          python-version: "3.11"
+
+
+      - name: Install system packages
+        run: |
+
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            git \
+            zip \
+            unzip \
+            openjdk-17-jdk \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses-dev \
+            cmake \
+            libffi-dev \
+            libssl-dev
+
+
+      - name: Install p4a
+        run: |
+
+          python -m pip install --upgrade pip
+
+          python -m pip install \
+            python-for-android
+
+
+      - name: Build Runner
+        run: |
+
+          mkdir -p output
+
+          p4a apk \
+            --private app \
+            --package=com.reizyuki.runner \
+            --name="Runner" \
+            --version=1.0.0 \
+            --bootstrap=webview \
+            --requirements=python3,flask,requests,pyjnius \
+            --permission=INTERNET \
+            --permission=READ_EXTERNAL_STORAGE \
+            --permission=WRITE_EXTERNAL_STORAGE \
+            --arch=arm64-v8a \
+            --debug
+
+
+      - name: Locate APK
+        run: |
+
+          find . \
+            -type f \
+            -name "*.apk" \
+            -print
+
+
+      - name: Copy APK
+        run: |
+
+          APK=$(find . \
+            -type f \
+            -name "*.apk" \
+            | head -n 1)
+
+          cp "$APK" output/Runner.apk
+
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: Runner-APK
+
+          path: output/Runner.apk
